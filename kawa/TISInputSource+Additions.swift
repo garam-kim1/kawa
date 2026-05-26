@@ -1,3 +1,4 @@
+import Carbon
 import Foundation
 
 extension TISInputSource {
@@ -8,39 +9,31 @@ extension TISInputSource {
   }
 
   private func getProperty(_ key: CFString) -> AnyObject? {
-    let cfType = TISGetInputSourceProperty(self, key)
-    if (cfType != nil) {
-      return Unmanaged<AnyObject>.fromOpaque(cfType!).takeUnretainedValue()
-    } else {
-      return nil
-    }
+    guard let cfType = TISGetInputSourceProperty(self, key) else { return nil }
+    return Unmanaged<AnyObject>.fromOpaque(cfType).takeUnretainedValue()
   }
 
   var id: String {
-    return getProperty(kTISPropertyInputSourceID) as! String
+    return getProperty(kTISPropertyInputSourceID) as? String ?? ""
   }
 
   var name: String {
-    return getProperty(kTISPropertyLocalizedName) as! String
+    return getProperty(kTISPropertyLocalizedName) as? String ?? ""
   }
 
   var category: String {
-    return getProperty(kTISPropertyInputSourceCategory) as! String
+    return getProperty(kTISPropertyInputSourceCategory) as? String ?? ""
   }
 
   var isSelectable: Bool {
-    return getProperty(kTISPropertyInputSourceIsSelectCapable) as! Bool
+    return getProperty(kTISPropertyInputSourceIsSelectCapable) as? Bool ?? false
   }
 
   var sourceLanguages: [String] {
-    return getProperty(kTISPropertyInputSourceLanguages) as! [String]
+    return getProperty(kTISPropertyInputSourceLanguages) as? [String] ?? []
   }
 
   var iconImageURL: URL? {
-    return getProperty(kTISPropertyIconImageURL) as! URL?
-  }
-
-  var iconRef: IconRef? {
-    return OpaquePointer(TISGetInputSourceProperty(self, kTISPropertyIconRef)) as IconRef?
+    return getProperty(kTISPropertyIconImageURL) as? URL
   }
 }

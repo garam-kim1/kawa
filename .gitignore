@@ -20,7 +20,8 @@ DerivedData
 Kawa.app
 .DS_Store
 
-# Carthage
+# Swift Package Manager
 #
-Carthage/Checkouts
-Carthage/Build
+.swiftpm
+.build
+Package.resolved

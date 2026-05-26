@@ -1,45 +1,32 @@
 import Cocoa
+import KeyboardShortcuts
 
 class ShortcutCellView: NSTableCellView {
-  @IBOutlet weak var shortcutView: MASShortcutView!
+  @IBOutlet weak var recorderContainer: NSView!
 
-  var inputSource: InputSource?
-  var shortcutKey: String?
+  private var recorder: KeyboardShortcuts.RecorderCocoa?
+  private var inputSource: InputSource?
 
   func setInputSource(_ inputSource: InputSource) {
     self.inputSource = inputSource
-    shortcutKey = inputSource.id.replacingOccurrences(of: ".", with: "-")
-    shortcutView.associatedUserDefaultsKey = shortcutKey!
-    shortcutView.shortcutValueChange = self.shortcutValueDidChange
-    MASShortcutBinder.shared().bindShortcut(withDefaultsKey: shortcutKey!, toAction: selectInput)
+
+    recorder?.removeFromSuperview()
+
+    let recorder = KeyboardShortcuts.RecorderCocoa(for: InputSourceManager.shortcutName(for: inputSource))
+    recorder.translatesAutoresizingMaskIntoConstraints = false
+    recorderContainer.addSubview(recorder)
+    NSLayoutConstraint.activate([
+      recorder.leadingAnchor.constraint(equalTo: recorderContainer.leadingAnchor),
+      recorder.trailingAnchor.constraint(equalTo: recorderContainer.trailingAnchor),
+      recorder.centerYAnchor.constraint(equalTo: recorderContainer.centerYAnchor),
+    ])
+    self.recorder = recorder
   }
 
-  func shortcutValueDidChange(_ sender: MASShortcutView?) {
-    if sender?.shortcutValue == nil {
-      resetShortcutBinder()
-    }
-  }
-
-  func resetShortcutBinder() {
-    MASShortcutBinder.shared().breakBinding(withDefaultsKey: shortcutKey!)
-    MASShortcutBinder.shared().bindShortcut(withDefaultsKey: shortcutKey!, toAction: selectInput)
-  }
-
-  func selectInput() {
-    guard let inputSource = inputSource else { return }
-
-    inputSource.select()
-
-    if PermanentStorage.showsNotification {
-      showNotification(inputSource.name, icon: inputSource.icon)
-    }
-  }
-
-  func showNotification(_ message: String, icon: NSImage?) {
-    NSUserNotificationCenter.default.removeAllDeliveredNotifications()
-    let notification = NSUserNotification()
-    notification.informativeText = message
-    notification.contentImage = icon
-    NSUserNotificationCenter.default.deliver(notification)
+  override func prepareForReuse() {
+    super.prepareForReuse()
+    recorder?.removeFromSuperview()
+    recorder = nil
+    inputSource = nil
   }
 }

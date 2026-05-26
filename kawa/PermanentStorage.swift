@@ -1,8 +1,10 @@
 import Cocoa
 
-class PermanentStorage {
+enum PermanentStorage {
+  static var defaults: UserDefaults = .standard
+
   private static func object<T>(forKey key: StorageKey, withDefault defaultValue: T) -> T {
-    if let val = UserDefaults.standard.object(forKey: key.rawValue) as? T {
+    if let val = defaults.object(forKey: key.rawValue) as? T {
       return val
     } else {
       return defaultValue
@@ -10,30 +12,15 @@ class PermanentStorage {
   }
 
   private static func set<T>(_ value: T, forKey key: StorageKey) {
-    UserDefaults.standard.set((value as AnyObject), forKey: key.rawValue)
-    UserDefaults.standard.synchronize()
+    defaults.set((value as AnyObject), forKey: key.rawValue)
   }
 
-  private enum StorageKey: String {
+  enum StorageKey: String {
     case showsNotification = "show-notification"
-    case launchedForTheFirstTime = "launched-for-the-first-time"
   }
 
   static var showsNotification: Bool {
-    get {
-      return object(forKey: .showsNotification, withDefault: false)
-    }
-    set {
-      set(newValue, forKey: .showsNotification)
-    }
-  }
-
-  static var launchedForTheFirstTime: Bool {
-    get {
-      return object(forKey: .launchedForTheFirstTime, withDefault: true)
-    }
-    set {
-      set(newValue, forKey: .launchedForTheFirstTime)
-    }
+    get { object(forKey: .showsNotification, withDefault: false) }
+    set { set(newValue, forKey: .showsNotification) }
   }
 }

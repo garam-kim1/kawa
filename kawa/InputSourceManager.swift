@@ -1,5 +1,7 @@
 import Carbon
 import Cocoa
+import KeyboardShortcuts
+import UserNotifications
 
 class InputSource {
   let tisInputSource: TISInputSource
@@ -27,10 +29,6 @@ class InputSource {
       }
     }
 
-    if iconImage == nil, let iconRef = tisInputSource.iconRef {
-      iconImage = NSImage(iconRef: iconRef)
-    }
-
     self.icon = iconImage
   }
 
@@ -47,19 +45,88 @@ extension InputSource: Equatable {
 
 extension InputSource {
   static var sources: [InputSource] {
-    let inputSourceNSArray = TISCreateInputSourceList(nil, false).takeRetainedValue() as NSArray
-    let inputSourceList = inputSourceNSArray as! [TISInputSource]
+    guard let list = TISCreateInputSourceList(nil, false)?.takeRetainedValue() as? [TISInputSource] else {
+      return []
+    }
 
-    return inputSourceList
-      .filter {
-        $0.category == TISInputSource.Category.keyboardInputSource && $0.isSelectable
-    }.map {
-      InputSource(tisInputSource: $0)
+    return list
+      .filter { $0.category == TISInputSource.Category.keyboardInputSource && $0.isSelectable }
+      .map { InputSource(tisInputSource: $0) }
+  }
+}
+
+enum InputSourceManager {
+  static func shortcutNameRawValue(forInputSourceID id: String) -> String {
+    id.replacingOccurrences(of: ".", with: "-")
+  }
+
+  static func shortcutName(for inputSource: InputSource) -> KeyboardShortcuts.Name {
+    KeyboardShortcuts.Name(shortcutNameRawValue(forInputSourceID: inputSource.id))
+  }
+
+  @MainActor
+  static func bindAllShortcuts() {
+    for source in InputSource.sources {
+      bind(source)
+    }
+  }
+
+  @MainActor
+  static func bind(_ inputSource: InputSource) {
+    let name = shortcutName(for: inputSource)
+    let sourceID = inputSource.id
+    KeyboardShortcuts.removeHandler(for: name)
+    KeyboardShortcuts.onKeyDown(for: name) {
+      guard let source = InputSource.sources.first(where: { $0.id == sourceID }) else { return }
+      source.select()
+
+      if PermanentStorage.showsNotification {
+        showNotification(source.name, icon: source.icon)
+      }
+    }
+  }
+
+  private static func showNotification(_ message: String, icon: NSImage?) {
+    let center = UNUserNotificationCenter.current()
+    center.removeAllDeliveredNotifications()
+
+    let content = UNMutableNotificationContent()
+    content.body = message
+    if let icon, let attachment = notificationAttachment(for: icon) {
+      content.attachments = [attachment]
+    }
+
+    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+    center.add(request, withCompletionHandler: nil)
+  }
+
+  private static func notificationAttachment(for icon: NSImage) -> UNNotificationAttachment? {
+    guard let tiff = icon.tiffRepresentation,
+          let rep = NSBitmapImageRep(data: tiff),
+          let data = rep.representation(using: .png, properties: [:]) else {
+      return nil
+    }
+
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+      .appendingPathComponent("kawa-notification-icons", isDirectory: true)
+    let tempURL = dir
+      .appendingPathComponent(UUID().uuidString)
+      .appendingPathExtension("png")
+
+    do {
+      try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+      try data.write(to: tempURL, options: [.atomic])
+      let attachment = try UNNotificationAttachment(identifier: "icon", url: tempURL, options: nil)
+      try? FileManager.default.removeItem(at: tempURL)
+      return attachment
+    } catch {
+      try? FileManager.default.removeItem(at: tempURL)
+      return nil
     }
   }
 }
 
-private extension URL {
+extension URL {
   var retinaImageURL: URL {
     var components = pathComponents
     let filename: String = components.removeLast()

@@ -110,10 +110,10 @@
         <!--Tab View Controller-->
         <scene sceneID="5ir-jp-5yI">
             <objects>
-                <tabViewController selectedTabViewItemIndex="0" id="lsI-lx-rUQ" sceneMemberID="viewController">
+                <tabViewController selectedTabViewItemIndex="0" tabStyle="segmentedControlOnTop" id="lsI-lx-rUQ" sceneMemberID="viewController">
                     <tabViewItems>
                         <tabViewItem label="Shortcuts" id="t0q-O3-7G8"/>
-                        <tabViewItem label="System Settings" id="a3F-Tg-T9s"/>
+                        <tabViewItem label="Preferences" id="a3F-Tg-T9s"/>
                     </tabViewItems>
                     <tabView key="tabView" type="noTabsNoBorder" id="B9b-jX-Do0">
                         <autoresizingMask key="autoresizingMask"/>
@@ -193,7 +193,7 @@
                             <rect key="frame" x="1" y="0.0" width="448" height="299"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
-                                <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" selectionHighlightStyle="none" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" rowHeight="20" rowSizeStyle="automatic" headerView="5Va-Kz-KE9" viewBased="YES" id="biS-0R-WsE" customClass="ShortcutTableView" customModule="Kawa" customModuleProvider="target">
+                                <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" selectionHighlightStyle="none" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" rowHeight="22" rowSizeStyle="automatic" headerView="5Va-Kz-KE9" viewBased="YES" id="biS-0R-WsE">
                                     <rect key="frame" x="0.0" y="0.0" width="448" height="276"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <size key="intercellSpacing" width="3" height="2"/>
@@ -254,13 +254,13 @@
                                                     <rect key="frame" x="192" y="1" width="254" height="20"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <subviews>
-                                                        <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="I1q-7B-J5s" customClass="MASShortcutView">
+                                                        <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="I1q-7B-J5s">
                                                             <rect key="frame" x="1" y="2" width="253" height="18"/>
                                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                         </customView>
                                                     </subviews>
                                                     <connections>
-                                                        <outlet property="shortcutView" destination="I1q-7B-J5s" id="8as-IO-u9H"/>
+                                                        <outlet property="recorderContainer" destination="I1q-7B-J5s" id="8as-IO-u9H"/>
                                                     </connections>
                                                 </tableCellView>
                                             </prototypeCellViews>

@@ -1,25 +1,22 @@
 import Cocoa
+import UserNotifications
 
-@NSApplicationMain
+@main
 class AppDelegate: NSObject, NSApplicationDelegate {
   let statusBar = StatusBar.shared
 
   var justLaunched: Bool = true
 
   func applicationDidFinishLaunching(_ aNotification: Notification) {
-    if PermanentStorage.launchedForTheFirstTime {
-      PermanentStorage.launchedForTheFirstTime = false
-    }
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    InputSourceManager.bindAllShortcuts()
   }
 
   func applicationDidBecomeActive(_ notification: Notification) {
-    if !justLaunched || PermanentStorage.launchedForTheFirstTime {
+    if !justLaunched {
       showPreferences()
     }
-
-    if justLaunched {
-      justLaunched = false
-    }
+    justLaunched = false
   }
 
   @IBAction func showPreferences(_ sender: AnyObject? = nil) {
