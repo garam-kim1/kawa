@@ -13,6 +13,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationDidBecomeActive(_ notification: Notification) {
+    // Ignore the brief focus-steal Kawa uses to engage a CJKV input method —
+    // otherwise the preferences window would flash open on every such switch.
+    if InputSourceManager.isActivatingInputMethod {
+      return
+    }
     if !justLaunched {
       showPreferences()
     }

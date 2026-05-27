@@ -15,6 +15,15 @@ class InputSource {
     return tisInputSource.name
   }
 
+  /// Chinese/Japanese/Korean/Vietnamese sources are IME-backed and need the
+  /// extra activation step in `select()` to actually engage.
+  var isCJKV: Bool {
+    if let lang = tisInputSource.sourceLanguages.first {
+      return lang == "ko" || lang == "ja" || lang == "vi" || lang.hasPrefix("zh")
+    }
+    return false
+  }
+
   init(tisInputSource: TISInputSource) {
     self.tisInputSource = tisInputSource
 
@@ -34,6 +43,15 @@ class InputSource {
 
   func select() {
     TISSelectInputSource(tisInputSource)
+
+    // `TISSelectInputSource` alone often only updates the menu-bar indicator
+    // for an IME-backed CJKV source: the focused app keeps composing in the
+    // previous layout (plain English), most visibly in browsers and Electron
+    // apps such as Slack in a web browser. Nudging the IME with a brief key
+    // window forces it to take over — see `activateInputMethod()`.
+    if isCJKV {
+      InputSourceManager.activateInputMethod()
+    }
   }
 }
 
@@ -82,6 +100,80 @@ enum InputSourceManager {
 
       if PermanentStorage.showsNotification {
         showNotification(source.name, icon: source.icon)
+      }
+    }
+  }
+
+  /// True only while `activateInputMethod()` is briefly holding focus for the
+  /// IME nudge. `AppDelegate` checks this so the focus-steal isn't mistaken
+  /// for a real user activation (which would flash the preferences window).
+  static var isActivatingInputMethod = false
+
+  /// Force the just-selected CJKV input method to genuinely engage.
+  ///
+  /// macOS only activates an IME for the app that owns the key window. Kawa is
+  /// a background (LSUIElement) app, so a plain `TISSelectInputSource` leaves
+  /// the front app — especially browsers and Electron apps like Slack web —
+  /// still composing in the previous layout even though the menu-bar indicator
+  /// changed. Briefly giving Kawa an (invisible) key window makes the IME
+  /// attach to a real input client and take over system-wide; focus is then
+  /// handed back to whatever the user was typing in.
+  ///
+  /// Adapted from laishulu/macism's temporary-window workaround, but kept
+  /// non-terminating since Kawa is a long-running app.
+  static func activateInputMethod() {
+    // The shorter we hold focus, the less likely a fast first keystroke is
+    // swallowed; too short and the IME may not finish switching. Configurable.
+    let delay = TimeInterval(max(0, PermanentStorage.imeActivationDelayMs)) / 1000.0
+
+    DispatchQueue.main.async {
+      // Remember who the user was typing in so focus can be restored.
+      let previousApp = NSWorkspace.shared.frontmostApplication
+
+      let window = NSWindow(
+        contentRect: NSRect(x: 0, y: 0, width: 1, height: 1),
+        styleMask: [.titled],  // a titled window is required to become key
+        backing: .buffered,
+        defer: false
+      )
+      window.isReleasedWhenClosed = false
+      window.backgroundColor = .clear
+      window.isOpaque = false
+      window.hasShadow = false
+      window.ignoresMouseEvents = true
+      window.titlebarAppearsTransparent = true
+      window.level = .screenSaver
+      window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+      window.standardWindowButton(.closeButton)?.isHidden = true
+      window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+      window.standardWindowButton(.zoomButton)?.isHidden = true
+
+      // Park it in the bottom-right corner; with a clear background it stays
+      // invisible regardless of any platform-imposed minimum size.
+      if let screen = NSScreen.main {
+        let frame = screen.visibleFrame
+        window.setFrameOrigin(NSPoint(x: frame.maxX - 1, y: frame.minY))
+      }
+
+      // Briefly bring Kawa forward so the IME attaches to our key window.
+      // Flag it so AppDelegate doesn't open preferences in response.
+      isActivatingInputMethod = true
+      if #available(macOS 14.0, *) {
+        NSApp.activate()
+      } else {
+        NSApp.activate(ignoringOtherApps: true)
+      }
+      window.makeKeyAndOrderFront(nil)
+
+      DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+        window.orderOut(nil)
+        // Hand focus back to whatever the user was typing in.
+        if #available(macOS 14.0, *) {
+          previousApp?.activate()
+        } else {
+          previousApp?.activate(options: [])
+        }
+        isActivatingInputMethod = false
       }
     }
   }

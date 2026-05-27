@@ -1,3 +1,17 @@
+## Unreleased
+
+* Fix CJKV (Chinese/Japanese/Korean/Vietnamese) switching not engaging the
+  input method in browsers and Electron apps (e.g. Slack in a web browser):
+  the menu-bar indicator changed but typing stayed in the previous layout.
+  Kawa now briefly takes focus with an invisible window so the IME activates,
+  then restores focus. Technique adapted from `laishulu/macism`; replaces the
+  old "select previous input source" hotkey workaround, which no longer works
+  on recent macOS.
+* The focus-hold time defaults to 50 ms and is configurable (no UI) via
+  `defaults write net.noraesae.Kawa ime-activation-delay-ms <ms>` — lower it
+  if a fast first keystroke gets swallowed, raise it if switching doesn't take.
+* Suppress the preferences window flashing open during the CJKV focus nudge.
+
 ## 1.1.0 (10 Nov 2017)
 
 * Remove previous notifications on new one (#17)

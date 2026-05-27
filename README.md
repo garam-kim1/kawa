@@ -161,9 +161,35 @@ Old bindings can't be migrated automatically. Open Kawa's preferences
 
 ### CJKV input sources
 
-There is a known bug in macOS's Carbon library that switching keyboard
-layouts using `TISSelectInputSource` doesn't work well with complex
-input sources like [CJKV](https://en.wikipedia.org/wiki/CJK_characters).
+macOS has a long-standing quirk: switching *to* a complex, IME-backed
+[CJKV](https://en.wikipedia.org/wiki/CJK_characters) source (Chinese,
+Japanese, Korean, Vietnamese) with `TISSelectInputSource` often only updates
+the menu-bar indicator without actually activating the input method in the
+focused app. The language *looks* switched but typing still produces the
+previous layout (usually plain English) — most noticeably in browsers and
+Electron apps such as **Slack in a web browser**, VS Code, etc.
+
+Kawa works around this (technique adapted from
+[`laishulu/macism`](https://github.com/laishulu/macism)): when you switch to
+a CJKV source, it briefly takes focus with a tiny invisible window so the IME
+engages, then hands focus back to the app you were typing in. The only visible
+effect is a brief focus flicker, and only when switching to a CJKV source —
+switching to Latin layouts (ABC/U.S. etc.) is unaffected.
+
+#### Tuning the focus-hold time
+
+The window is held for **50 ms** by default. While it's held, keystrokes go to
+Kawa, so if you start typing extremely quickly after switching, the first
+letter can be swallowed — shorten the hold. If switching instead leaves you
+typing in the previous layout, the IME didn't finish engaging — lengthen it.
+There's no UI; set it (in milliseconds) and restart Kawa:
+
+```bash
+defaults write net.noraesae.Kawa ime-activation-delay-ms 30
+```
+
+Newer macOS (e.g. macOS 26 Tahoe) tends to need a larger value (~150 ms) than
+older releases (which manage with just a few ms).
 
 ## Development
 
